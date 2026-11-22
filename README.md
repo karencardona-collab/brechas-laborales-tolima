@@ -145,7 +145,7 @@ El proyecto fue desarrollado colaborativamente por las tres integrantes[cite: 10
 
 | Integrante | Cuenta de GitHub | Aporte |
 | :--- | :--- | :--- |
-| **Karen Natalia Moreno Bermúdez** | `karencardona-collab` / `karenmoreno1805` | Organización del repositorio, ejecución del pipeline, generación de entregables y documentación[cite: 8, 10] |
+| **Karen Natalia Moreno Bermúdez** | `karenmoreno1805` | Organización del repositorio, ejecución del pipeline, generación de entregables y documentación[cite: 8, 10] |
 | **María Fernanda Rodríguez** | `mariarodriguez22-hub` | Desarrollo de transformaciones, análisis de calidad y aportes registrados en el historial del proyecto[cite: 10] |
 | **Karen Vanesa Cardona** | `karencardona-collab` | Coautora del diagnóstico inicial, diseño metodológico, pruebas y sustentación[cite: 8, 10] |
 
