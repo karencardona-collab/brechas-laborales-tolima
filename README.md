@@ -89,7 +89,7 @@ Antes de exportar los resultados, el pipeline ejecuta reglas de control de calid
 1. Clonar el repositorio (reemplazar `<usuario>` por la cuenta propietaria del repo):
 
    ```
-   git clone https://github.com/<usuario>/brechas-laborales-tolima.git
+   git clone https://github.com/karencardona-collab/brechas-laborales-tolima.git
    cd brechas-laborales-tolima
    ```
 
