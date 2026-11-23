@@ -1,6 +1,10 @@
-import pandas as pd
-import unicodedata
 import re
+import unicodedata
+from pathlib import Path
+
+import pandas as pd
+
+RAIZ = Path(__file__).resolve().parent.parent
 
 # ==============================================================================
 # 1. CARGA DE FUENTES DE DATOS
@@ -9,8 +13,8 @@ print("=" * 70)
 print("1. CARGANDO FUENTES DE DATOS")
 print("=" * 70)
 
-archivo_vacantes = "COMFATOLIMA (1).xlsx"
-archivo_dane = "dane (1).xlsx"
+archivo_vacantes = RAIZ / "data" / "raw" / "COMFATOLIMA.xlsx"
+archivo_dane = RAIZ / "data" / "raw" / "dane.xlsx"
 
 df_vacantes_raw = pd.read_excel(archivo_vacantes, sheet_name="BUE-1-20261108-0353.xlsx")
 df_dane_raw = pd.read_excel(archivo_dane, sheet_name="Hoja1")
@@ -177,10 +181,10 @@ print(f"[OK] Validación de integridad: {df_integrado['TOTAL_VACANTES'].sum()} v
 print(f"[OK] Validación de cruce: 100% de municipios cruzados con indicadores DANE ({int(df_integrado['ANIO_REF_DANE'].iloc[0])}).")
 print(f"[OK] Hallazgo clave: Ibagué concentra el {df_integrado.loc[df_integrado['MUNICIPIO_NORM']=='IBAGUE', 'PARTICIPACION_VACANTES_PCT'].values[0]}% de las vacantes del Tolima.")
 
-archivo_salida = "dataset_consolidado_brechas_tolima.xlsx"
+archivo_salida = RAIZ / "outputs" / "dataset_consolidado_brechas_tolima.xlsx"
 with pd.ExcelWriter(archivo_salida, engine="openpyxl") as writer:
     df_integrado.to_excel(writer, sheet_name="1_Integrado_Brechas_Tolima", index=False)
     df_tolima.to_excel(writer, sheet_name="2_Vacantes_Tolima_Limpias", index=False)
     df_dane_tabular.to_excel(writer, sheet_name="3_Historico_DANE_2007_2025", index=False)
 
-print(f"\nPipeline ejecutado correctamente. Archivo generado: '{archivo_salida}'")
+print(f"\nPipeline ejecutado correctamente. Archivo generado: '{archivo_salida.name}'")
