@@ -1,11 +1,11 @@
 # Análisis de Brechas entre Oferta y Demanda Laboral en el Tolima
-**Pipeline reproducible de integración y transformación de datos**[cite: 9]
+**Pipeline reproducible de integración y transformación de datos**
 
-* **Asignatura:** Fundamentos de Integración y Transformación de Datos — Universidad de Ibagué (2026)[cite: 9]
-* **Docente:** Mariana Millán Meneses[cite: 9]
-* **Integrantes:** Karen Vanesa Cardona, María Fernanda Rodríguez, Karen Natalia Moreno Bermúdez[cite: 9]
+* **Asignatura:** Fundamentos de Integración y Transformación de Datos — Universidad de Ibagué (2026)
+* **Docente:** Mariana Millán Meneses
+* **Integrantes:** Karen Vanesa Cardona, María Fernanda Rodríguez, Karen Natalia Moreno Bermúdez
 
-> Con un solo comando (`python "proyecto final.py"`) el pipeline lee las fuentes crudas, las diagnostica, las limpia con cinco transformaciones justificadas, las integra en un único dataset, valida el resultado y genera un reporte de calidad y visualización[cite: 9].
+> Con un solo comando (`python main.py`) el pipeline lee las fuentes crudas, las diagnostica, las limpia con cinco transformaciones justificadas, las integra en un único dataset, valida el resultado y genera un reporte de calidad y visualización.
 
 ---
 
@@ -23,8 +23,8 @@ En el departamento del Tolima existe una desarticulación estructural entre la o
 ## 2. Fuentes de datos
 | Fuente | Archivo en repositorio | Entidad / Origen | Granularidad y cobertura | Registros crudos |
 | :--- | :--- | :--- | :--- | :--- |
-| **Demanda laboral** | `COMFATOLIMA (1).xlsx` | Servicio Público de Empleo (SPE) / Comfatolima | Ofertas laborales publicadas (corte 2026) | 1.000 filas × 26 variables |
-| **Oferta laboral** | `dane (1).xlsx` | DANE — Gran Encuesta Integrada de Hogares (GEIH) | Indicadores anuales departamentales del Tolima (2007–2025) | 12 filas × 20 columnas |
+| **Demanda laboral** | `data/raw/COMFATOLIMA.xlsx` | Servicio Público de Empleo (SPE) / Comfatolima | Ofertas laborales publicadas (corte 2026) | 1.000 filas × 20 variables |
+| **Oferta laboral** | `data/raw/dane.xlsx` | DANE — Gran Encuesta Integrada de Hogares (GEIH) | Indicadores anuales departamentales del Tolima (2007–2025) | 16 filas × 20 columnas |
 
 ---
 
@@ -32,11 +32,11 @@ En el departamento del Tolima existe una desarticulación estructural entre la o
 El flujo de procesamiento sigue una arquitectura ETL secuencial y reproducible con rutas relativas:
 
 ```text
-[COMFATOLIMA (1).xlsx] ──┐
+[data/raw/COMFATOLIMA.xlsx] ──┐
                          ├──> (1) Ingesta y Diagnóstico ──> (2) 5 Transformaciones ──> (3) Integración Relacional
-[dane (1).xlsx] ─────────┘                                                                       │
+[data/raw/dane.xlsx] ─────────┘                                                                       │
                                                                                                  ▼
-[dashboard_brechas_tolima.png] + [resultado_final_brechas_tolima.xlsx] <── (4) Validaciones (assert)
+[outputs/dashboard_brechas_tolima.png] + [outputs/resultado_final_brechas_tolima.xlsx] <── (4) Validaciones (assert)
 ```
 
 ---
@@ -78,61 +78,98 @@ Antes de exportar los resultados, el pipeline ejecuta reglas de control de calid
 ---
 
 ## 8. Cómo ejecutar
-### Requisitos
-* Python 3.10 o superior
-* Dependencias: `pandas`, `openpyxl`, `matplotlib`
 
-### Pasos de ejecución
-1. Clonar o descargar este repositorio asegurando que los archivos `.py` y `.xlsx` permanezcan en la misma carpeta raíz.
-2. Instalar las librerías necesarias:
-   ```bash
-   pip install pandas openpyxl matplotlib
+### Requisitos
+
+- Python 3.10 o superior
+- Dependencias en `requirements.txt` (`pandas`, `openpyxl`, `matplotlib`, `pytest`)
+
+### Pasos
+
+1. Clonar el repositorio (reemplazar `<usuario>` por la cuenta propietaria del repo):
+
    ```
-3. Ejecutar el pipeline principal:
-   ```bash
-   python "proyecto final.py"
+   git clone https://github.com/<usuario>/brechas-laborales-tolima.git
+   cd brechas-laborales-tolima
    ```
-   *(Alternativamente, si se utiliza `uv`: `uv run --with pandas --with openpyxl --with matplotlib python "proyecto final.py"`)*
+
+2. Instalar las dependencias:
+
+   ```
+   pip install -r requirements.txt
+   ```
+
+3. Ejecutar el pipeline **desde la raíz del repositorio**:
+
+   ```
+   python main.py
+   ```
+
+   Las rutas son relativas a la raíz (se calculan con `pathlib`), así que funciona igual en Windows, Mac y Linux.
+
+Salidas generadas:
+
+- `outputs/resultado_final_brechas_tolima.xlsx` (6 hojas analíticas)
+- `outputs/dashboard_brechas_tolima.png` (tablero de 4 gráficos)
+- `data/processed/vacantes_tolima_limpias.csv` y `data/processed/dane_tolima_2007_2025.csv`
 
 ---
 
 ## 9. Pruebas automáticas
-El script incorpora aserciones automáticas (`assert`) en la **Etapa 5** que detienen la ejecución con un mensaje explícito si alguna regla de negocio o calidad falla:
-```python
-assert df_integrado["VACANTES_TOTALES"].sum() == df_tolima["CANTIDAD_VACANTES"].sum()
-assert df_integrado["TD_PCT"].isna().sum() == 0
-assert df_tolima["CODIGO_VACANTE"].duplicated().sum() == 0
-assert len(df_dane_tabular) == 19
-assert df_dane_tabular["Tasa de Desocupación (TD)"].between(0, 100).all()
-```
-El resultado de cada verificación queda registrado con marca de tiempo en la hoja `6_Auditoria_Validaciones` del Excel de salida.
+
+Hay dos niveles de control de calidad:
+
+1. **Validaciones dentro del pipeline** (`src/validacion.py`, etapa 5): detienen la ejecución con un mensaje explícito si una regla falla y quedan registradas con fecha y hora en la hoja `6_Auditoria_Validaciones` del Excel de salida.
+2. **Pruebas con pytest** (`tests/test_pipeline.py`): 8 pruebas sobre las funciones de limpieza, la integración y las reglas de validación. Para correrlas:
+
+   ```
+   pytest -q
+   ```
 
 ---
 
 ## 10. Estructura del repositorio
-```text
+
+```
 brechas-laborales-tolima/
-├── COMFATOLIMA (1).xlsx                        # Fuente cruda: vacantes SPE / Comfatolima
-├── dane (1).xlsx                               # Fuente cruda: indicadores GEIH Tolima (2007-2025)
-├── segundo avance.py                           # Script de integración preliminar (Avance 2)
-├── proyecto final.py                           # Pipeline final completo, validaciones y gráficos
-├── conjunto de datos_consolidado_brechas_tolima.xlsx # Salida intermedia del Avance 2
-├── resultado_final_brechas_tolima.xlsx         # Entregable final en Excel (6 hojas analíticas)
-├── dashboard_brechas_tolima.png                # Tablero visual de 4 gráficos generado automáticamente
-└── README.md                                   # Documentación técnica del proyecto
+├── data/
+│   ├── raw/                     # Fuentes originales (no se modifican)
+│   │   ├── COMFATOLIMA.xlsx     #   Vacantes SPE / Comfatolima
+│   │   └── dane.xlsx            #   Indicadores GEIH Tolima (2007-2025)
+│   └── processed/               # CSV limpios generados por el pipeline
+├── docs/                        # Documentación adicional
+├── notebooks/
+│   └── segundo_avance.py        # Script del Avance 2 (integración preliminar)
+├── outputs/                     # Resultados generados
+│   ├── resultado_final_brechas_tolima.xlsx
+│   ├── dataset_consolidado_brechas_tolima.xlsx   # Salida del Avance 2
+│   └── dashboard_brechas_tolima.png
+├── src/                         # Código del pipeline, un módulo por etapa
+│   ├── config.py                #   Rutas y constantes
+│   ├── ingesta.py               #   Carga y diagnóstico (etapas 1-2)
+│   ├── limpieza.py              #   5 transformaciones (etapa 3)
+│   ├── integracion.py           #   Cruce SPE + DANE y tablas de brecha (etapa 4)
+│   ├── validacion.py            #   Reglas de calidad (etapa 5)
+│   └── visualizacion.py         #   Dashboard
+├── tests/
+│   └── test_pipeline.py         # Pruebas con pytest
+├── .gitignore
+├── main.py                      # Punto de entrada: python main.py
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
 ## 11. Limitaciones y decisiones de diseño
 * **Diferencia de temporalidad y granularidad:** Las cifras del DANE tienen corte anual departamental (último cierre consolidado 2025), mientras que las vacantes del SPE representan una muestra puntual (2026) con desagregación municipal. Se decidió integrar a nivel departamental (`TOLIMA`) como contexto estructural sin imputar artificialmente tasas de desempleo municipales inexistentes en la GEIH.
-* **Rutas relativas:** Se optó por rutas relativas en la raíz del proyecto para garantizar portabilidad total entre sistemas operativos sin modificar el código.
+* **Rutas relativas:** Se optó por rutas relativas a la raíz del proyecto (`pathlib`) para garantizar portabilidad total entre sistemas operativos sin modificar el código.
 * **Estimación salarial:** Dado que el SPE publica rangos salariales en texto, se calculó el punto medio del intervalo en pesos colombianos para habilitar promedios cuantitativos, manteniendo como `NaN` los registros sin rango declarado.
 
 ---
 
 ## 12. Resultados de la ejecución con los datos reales
-Al ejecutar `proyecto final.py` sobre las bases reales se obtienen los siguientes hallazgos principales:
+Al ejecutar `python main.py` sobre las bases reales se obtienen los siguientes hallazgos principales:
 1. **Contexto de oferta laboral (DANE 2025):** El Tolima registra una Fuerza de Trabajo de **669.547 personas**, una población desocupada de **72.457 personas** y una Tasa de Desocupación (TD) de **10,82 %** (frente al pico pandémico de 23,24 % en 2020).
 2. **Brecha geográfica:** **Ibagué concentra el 89,55 %** de la demanda formal (60 de 67 vacantes), seguida a gran distancia por Espinal (5,97 %, 4 vacantes), Honda (2,99 %, 2 vacantes) y Melgar (1,49 %, 1 vacante).
 3. **Brecha educativa:** El **77,61 %** de los puestos solicitados exige formación **Media (49,25 %)** o **Técnica (28,36 %)**, mientras que el nivel **Universitario apenas alcanza el 2,99 %** (2 vacantes).
@@ -141,17 +178,17 @@ Al ejecutar `proyecto final.py` sobre las bases reales se obtienen los siguiente
 ---
 
 ## 13. Participación del equipo
-El proyecto fue desarrollado colaborativamente por las tres integrantes[cite: 10]:
+El proyecto fue desarrollado colaborativamente por las tres integrantes:
 
 | Integrante | Cuenta de GitHub | Aporte |
 | :--- | :--- | :--- |
-| **Karen Natalia Moreno Bermúdez** | `karenmoreno1805` | Organización del repositorio, ejecución del pipeline, generación de entregables y documentación[cite: 8, 10] |
-| **María Fernanda Rodríguez** | `mariarodriguez22-hub` | Desarrollo de transformaciones, análisis de calidad y aportes registrados en el historial del proyecto[cite: 10] |
-| **Karen Vanesa Cardona** | `karencardona-collab` | Coautora del diagnóstico inicial, diseño metodológico, pruebas y sustentación[cite: 8, 10] |
+| **Karen Natalia Moreno Bermúdez** | `karenmoreno1805` | Organización del repositorio, ejecución del pipeline, generación de entregables y documentación |
+| **María Fernanda Rodríguez** | `mariarodriguez22-hub` | Desarrollo de transformaciones, análisis de calidad y aportes registrados en el historial del proyecto |
+| **Karen Vanesa Cardona** | `karencardona-collab` | Coautora del diagnóstico inicial, diseño metodológico, pruebas y sustentación |
 
 ---
 
 ## 14. Historial del proyecto
-* **Avance 1:** Definición del problema, extracción inicial de las bases del SPE y DANE, diccionario de variables y diagnóstico preliminar de calidad[cite: 10].
-* **Avance 2 (`segundo avance.py`):** Implementación de limpieza inicial, normalización geográfica y primera consolidación en `conjunto de datos_consolidado_brechas_tolima.xlsx`[cite: 10].
-* **Versión final (`proyecto final.py`):** Incorporación de las 5 transformaciones justificadas, corrección de anomalías de escala y codificación, pruebas automáticas (`assert`), tablero gráfico (`dashboard_brechas_tolima.png`) y reporte consolidado de 6 hojas (`resultado_final_brechas_tolima.xlsx`)[cite: 10].
+* **Avance 1:** Definición del problema, extracción inicial de las bases del SPE y DANE, diccionario de variables y diagnóstico preliminar de calidad.
+* **Avance 2 (`notebooks/segundo_avance.py`):** Implementación de limpieza inicial, normalización geográfica y primera consolidación en `outputs/dataset_consolidado_brechas_tolima.xlsx`.
+* **Versión final (`main.py` y `src/`):** Incorporación de las 5 transformaciones justificadas, corrección de anomalías de escala y codificación, pruebas automáticas (`assert`), tablero gráfico (`outputs/dashboard_brechas_tolima.png`) y reporte consolidado de 6 hojas (`outputs/resultado_final_brechas_tolima.xlsx`).
